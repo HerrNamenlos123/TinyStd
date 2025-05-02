@@ -60,3 +60,75 @@ You need one single implementation file, which will contain all the implementati
 Add this somewhere in your codebase, exactly once.
 
 If you have some sort of build system with a shared module, place it there. To improve compile time, place the implementation site somewhere it is only compiled once.
+
+## Example usage
+
+Arenas:
+```cpp
+using ts::Arena;
+
+// Stack Arena (NO malloc)
+StackArena<1024> arena; // 1024 bytes on stack
+
+// Heap Arena
+Arena arena = Arena::create(); // 1 malloc here
+arena.free(); // calls free
+arena.clearAndReinit(); // Free all chunks except first and clear it (faster than free + create, no malloc)
+
+// Usage
+int* value = arena.allocate<int>();
+float* floatList = arena.allocate<float>(5);
+App* app = arena.allocate<App>();
+```
+
+Strings:
+```cpp
+using ts::String;
+using ts::format;
+using ts::print;
+using namespace ts::literals;
+
+void foo() {
+    auto arena = Arena::create(); // 1 malloc here
+
+    auto str = "Hello World"_s;
+    String result = format(arena, "{}\n{} + {} = {}", str, 1, 2, 3);
+    print("The result is {}", result);
+
+    arena.free();
+}
+```
+
+Lists:
+```cpp
+using ts::String;
+using ts::List;
+using ts::Array;
+using ts::print;
+
+void foo() {
+    auto arena = Arena::create(); // 1 malloc here
+
+    List<int> numbers;
+    numbers.push(arena, 187);
+    numbers.push(arena, 42);
+    numbers.push(arena, 69);
+
+    print("Length: {}", numbers.length);
+    for (auto& n : numbers) {
+        print("n = {}", n);
+    }
+
+    Array<float, 3> array;
+    array[0] = 1;
+    array[1] = 2;
+    array[2] = 3;
+
+    print("Length: {}", array.length);
+    for (auto& n : array) {
+        print("n = {}", n);
+    }
+
+    arena.free();
+}
+```

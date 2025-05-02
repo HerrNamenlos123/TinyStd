@@ -29,6 +29,7 @@ If you share the Handmade mindset and you want to create bloat-free, fast softwa
 - No Exceptions
 - Not a single call to malloc outside of your arena initialization
 - Engineered for fast iteration times but not memory safety or fast execution (although that naturally emerged)
+- Define TINYSTD_USE_CLAY for additional conversions for the Clay flexbox layout library
 
 ### Features
 

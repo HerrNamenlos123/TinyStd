@@ -81,6 +81,11 @@ float* floatList = arena.allocate<float>(5);
 App* app = arena.allocate<App>();
 ```
 
+You are encouraged to create one large global Application struct and pass a pointer to it in every single function, 
+and inside that would be one global arena or multiple per-frame arenas, etc.
+
+That way you always have access to an arena and pass it to the functions that require it.
+
 Strings:
 ```cpp
 using ts::String;

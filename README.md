@@ -19,7 +19,7 @@ If you share the Handmade mindset and you want to create bloat-free, fast softwa
 
 ### Selling points
 
-- Single Header with ~1000 LOC
+- Single Header with ~1200 LOC
 - No external dependencies
 - No C++ headers
 - Only few specific C headers are used
@@ -28,15 +28,53 @@ If you share the Handmade mindset and you want to create bloat-free, fast softwa
 - No RAII
 - No Exceptions
 - Not a single call to malloc outside of your arena initialization
-- Engineered for fast iteration times but not memory safety or fast execution (although that naturally emerged)
+- Engineered for fast iteration times but not memory safety or fast execution (although the latter naturally emerged)
 - Define TINYSTD_USE_CLAY for additional conversions for the Clay flexbox layout library
+
+#### Compile time
+
+This library is specifically optimized for compile time, which allows your app to automatically compile and hot-reload a shared library at runtime. This means hot-reloading your code is quasi instant.
+
+Example:
+```cpp
+#define TINYSTD_IMPLEMENTATION
+#include "TinyStd.hpp"
+
+using namespace ts::literals;
+
+int main()
+{
+  print("Hello World: {} + {} = {}", 1, 2.0, "3"_s);
+  return 0;
+}
+```
+On my current machine, using clang 19 on Linux, the above code compiles to an executable in `0.15s`. This includes access to all features: Arrays, Lists, Templated Formatting, etc.
+
+For reference, the following code includes all C++ standard headers that provide the same features, and it already takes `0.74s` to compile and it's only going to get more.
+
+```cpp
+#include <algorithm>
+#include <array>
+#include <expected>
+#include <format>
+#include <optional>
+#include <print>
+#include <string>
+#include <vector>
+
+int main()
+{
+  std::print("Hello World: {} + {} = {}", 1, 2.0, "3");
+  return 0;
+}
+```
 
 ### Features
 
 - Purely Arenas for memory management
 - Length-Based Strings with `""_s`-literals and methods/operators for manipulation
 - Type-safe string formatting (fmt::format/std::format), supporting python-like formatting and custom formatters for your classes
-- print function (like printf but with python-like formatting)
+- print function (like printf/std::print but with type based formatting)
 - Panic handler
 - Optionals
 - Result type (Rust/std::expected)

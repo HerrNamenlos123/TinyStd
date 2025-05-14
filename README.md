@@ -1,5 +1,5 @@
 # TinyStd
-A C++20, single-header alternative standard library with zero dependencies
+A C++20, single-header alternative standard library with zero external dependencies
 
 ## Disclaimer
 

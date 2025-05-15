@@ -63,8 +63,7 @@ struct Arena {
     if (lastChunk->capacity - lastChunk->used < size) {
       if (this->isStackArena) {
         __panicSizeT("Stack Arena is not large enough for allocation of size {}", size);
-      }
-      else {
+      } else {
         this->enlarge(&lastChunk, ts_max(DEFAULT_ARENA_SIZE, size));
       }
     }
@@ -100,7 +99,7 @@ struct StackArena {
     return arena.allocate<T>(elementCount);
   }
 
-private:
+  private:
   Arena _arena = {};
   bool arenaInitialized = 0;
 };
@@ -145,7 +144,7 @@ struct String {
   {
   }
 
-private:
+  private:
   String(const char* str, size_t length)
   {
     this->data = str;
@@ -154,7 +153,10 @@ private:
 };
 
 namespace literals {
-  inline String operator""_s(const char* str, size_t length) { return String::view(str, length); }
+  inline String operator""_s(const char* str, size_t length)
+  {
+    return String::view(str, length);
+  }
 }
 
 template <typename... Args> void panic(const char* fmt, Args&&... args)
@@ -186,15 +188,27 @@ template <typename T> struct Optional {
     return this->_value;
   }
 
-  [[nodiscard]] bool hasValue() { return this->_hasValue; }
+  [[nodiscard]] bool hasValue()
+  {
+    return this->_hasValue;
+  }
 
-  [[nodiscard]] operator bool() { return this->hasValue(); }
+  [[nodiscard]] operator bool()
+  {
+    return this->hasValue();
+  }
 
-  [[nodiscard]] T& operator*() { return this->value(); }
+  [[nodiscard]] T& operator*()
+  {
+    return this->value();
+  }
 
-  [[nodiscard]] T* operator->() { return &this->_value; }
+  [[nodiscard]] T* operator->()
+  {
+    return &this->_value;
+  }
 
-private:
+  private:
   T _value;
   bool _hasValue;
 };
@@ -253,11 +267,17 @@ template <typename TVal, typename TErr> struct Result {
     return this->_error;
   }
 
-  [[nodiscard]] bool hasValue() { return this->_hasValue; }
+  [[nodiscard]] bool hasValue()
+  {
+    return this->_hasValue;
+  }
 
-  [[nodiscard]] operator bool() { return this->hasValue(); }
+  [[nodiscard]] operator bool()
+  {
+    return this->hasValue();
+  }
 
-private:
+  private:
   union {
     TVal _value;
     TErr _error;
@@ -278,8 +298,7 @@ template <typename T> struct List {
     if (!this->firstElement) {
       this->firstElement = arena.allocate<ListElem<T>>();
       this->firstElement->data = element;
-    }
-    else {
+    } else {
       ListElem<T>* lastElement = this->firstElement;
       while (lastElement->nextElement) {
         lastElement = lastElement->nextElement;
@@ -329,8 +348,7 @@ template <typename T> struct List {
       if (pred(curr->nextElement->data)) {
         curr->nextElement = curr->nextElement->nextElement;
         length--;
-      }
-      else {
+      } else {
         curr = curr->nextElement;
       }
     }
@@ -348,7 +366,10 @@ template <typename T> struct List {
     return elem->data;
   }
 
-  [[nodiscard]] T& operator[](size_t index) { return this->get(index); }
+  [[nodiscard]] T& operator[](size_t index)
+  {
+    return this->get(index);
+  }
 
   [[nodiscard]] T& back()
   {
@@ -387,7 +408,10 @@ template <typename T> struct List {
     {
     }
 
-    T& operator*() { return current->data; }
+    T& operator*()
+    {
+      return current->data;
+    }
 
     Iterator& operator++()
     {
@@ -395,19 +419,31 @@ template <typename T> struct List {
       return *this;
     }
 
-    bool operator!=(const Iterator& other) const { return current != other.current; }
+    bool operator!=(const Iterator& other) const
+    {
+      return current != other.current;
+    }
   };
 
-  Iterator begin() { return Iterator(this->firstElement); }
+  Iterator begin()
+  {
+    return Iterator(this->firstElement);
+  }
 
-  Iterator end() { return Iterator(nullptr); }
+  Iterator end()
+  {
+    return Iterator(nullptr);
+  }
 
-private:
+  private:
   ListElem<T>* firstElement = { 0 };
 };
 
 template <typename T, size_t Size> struct Array {
-  [[nodiscard]] T* data() { return this->_data; }
+  [[nodiscard]] T* data()
+  {
+    return this->_data;
+  }
 
   [[nodiscard]] T& get(size_t index)
   {
@@ -417,13 +453,22 @@ template <typename T, size_t Size> struct Array {
     return this->_data[index];
   }
 
-  [[nodiscard]] T& operator[](size_t index) { return this->get(index); }
+  [[nodiscard]] T& operator[](size_t index)
+  {
+    return this->get(index);
+  }
 
-  [[nodiscard]] size_t length() { return Size; }
+  [[nodiscard]] size_t length()
+  {
+    return Size;
+  }
 
-  void zeroFill() { __memset(this->_data, 0, sizeof(this->_data)); }
+  void zeroFill()
+  {
+    __memset(this->_data, 0, sizeof(this->_data));
+  }
 
-private:
+  private:
   T _data[Size];
 };
 
@@ -525,14 +570,29 @@ template <> struct formatter<unsigned long> {
   }
 };
 
+template <> struct formatter<short> {
+  static size_t format(const short& value, String formatArg, char* buffer, size_t remainingBufferSize)
+  {
+    __format_vsnprintf(buffer, remainingBufferSize, "%d", value);
+    return __format_strlen(buffer);
+  }
+};
+
+template <> struct formatter<unsigned short> {
+  static size_t format(const unsigned short& value, String formatArg, char* buffer, size_t remainingBufferSize)
+  {
+    __format_vsnprintf(buffer, remainingBufferSize, "%u", value);
+    return __format_strlen(buffer);
+  }
+};
+
 template <> struct formatter<bool> {
   static size_t format(const bool& value, String formatArg, char* buffer, size_t remainingBufferSize)
   {
     if (value) {
       __format_vsnprintf(buffer, remainingBufferSize, "true");
       return __format_strlen(buffer);
-    }
-    else {
+    } else {
       __format_vsnprintf(buffer, remainingBufferSize, "false");
       return __format_strlen(buffer);
     }
@@ -581,8 +641,7 @@ template <typename T> size_t format_value(const T& value, String formatArg, char
   if constexpr (no_formatter<formatter_t>) {
     static_assert(!no_formatter<formatter_t>, "No formatter is defined for this datatype");
     return 0;
-  }
-  else {
+  } else {
     return formatter_t::format(value, formatArg, buffer, remainingBufferSize);
   }
 }
@@ -593,20 +652,13 @@ void format_impl(String formatStr, int currentArg, int desiredArg, char* buf, si
 }
 
 template <typename T, typename... Args>
-void format_impl(String formatStr,
-                 int currentArg,
-                 int desiredArg,
-                 char* buf,
-                 size_t bufsize,
-                 size_t& currentLength,
-                 T&& value,
-                 Args&&... args)
+void format_impl(String formatStr, int currentArg, int desiredArg, char* buf, size_t bufsize, size_t& currentLength,
+    T&& value, Args&&... args)
 {
   if (currentArg == desiredArg) {
     size_t size = format_value(value, formatStr, buf + currentLength, bufsize - currentLength);
     currentLength += size;
-  }
-  else {
+  } else {
     format_impl(formatStr, currentArg + 1, desiredArg, buf, bufsize, currentLength, args...);
   }
 }
@@ -637,26 +689,21 @@ template <size_t MaxSize = 8192, typename... Args> String format(Arena& arena, c
       if (c == '{' && cnext != '{') {
         isParsingArg = true;
         formatStrLength = 0;
-      }
-      else if (c == '{' && cnext == '{') {
+      } else if (c == '{' && cnext == '{') {
         __format_concat(buf, buflen, MaxSize, &c, 1);
         i++;
-      }
-      else if (c == '}' && cnext == '}') {
+      } else if (c == '}' && cnext == '}') {
         __format_concat(buf, buflen, MaxSize, &c, 1);
         i++;
-      }
-      else {
+      } else {
         __format_concat(buf, buflen, MaxSize, &c, 1);
       }
-    }
-    else {
+    } else {
       if (c == '}') {
         isParsingArg = false;
         format_impl(String::view(formatStr, formatStrLength), 0, argIndex, buf, MaxSize, buflen, args...);
         argIndex++;
-      }
-      else {
+      } else {
         if (formatStrLength < FORMAT_MAX_FORMATTER_LENGTH) {
           formatStr[formatStrLength++] = fmt[i];
         }
@@ -692,7 +739,7 @@ template <size_t MaxSize = 8192, typename... Args> void print_stderr(const char*
 }
 
 template <typename T> class _Vec2 {
-public:
+  public:
   T x;
   T y;
 
@@ -708,19 +755,40 @@ public:
     this->y = y;
   }
 
-  double length() { return sqrt(pow(this->x, 2) + pow(this->y, 2)); }
+  double length()
+  {
+    return sqrt(pow(this->x, 2) + pow(this->y, 2));
+  }
 
-  _Vec2 operator-(const _Vec2& other) { return _Vec2(this->x - other.x, this->y - other.y); }
+  _Vec2 operator-(const _Vec2& other)
+  {
+    return _Vec2(this->x - other.x, this->y - other.y);
+  }
 
-  _Vec2 operator+(const _Vec2& other) { return _Vec2(this->x + other.x, this->y + other.y); }
+  _Vec2 operator+(const _Vec2& other)
+  {
+    return _Vec2(this->x + other.x, this->y + other.y);
+  }
 
-  _Vec2 operator*(const _Vec2& other) { return _Vec2(this->x * other.x, this->y * other.y); }
+  _Vec2 operator*(const _Vec2& other)
+  {
+    return _Vec2(this->x * other.x, this->y * other.y);
+  }
 
-  _Vec2 operator/(const _Vec2& other) { return _Vec2(this->x / other.x, this->y / other.y); }
+  _Vec2 operator/(const _Vec2& other)
+  {
+    return _Vec2(this->x / other.x, this->y / other.y);
+  }
 
-  _Vec2 operator*(T value) { return _Vec2(this->x * value, this->y * value); }
+  _Vec2 operator*(T value)
+  {
+    return _Vec2(this->x * value, this->y * value);
+  }
 
-  _Vec2 operator/(T value) { return _Vec2(this->x / value, this->y / value); }
+  _Vec2 operator/(T value)
+  {
+    return _Vec2(this->x / value, this->y / value);
+  }
 
   _Vec2 operator-=(const _Vec2& other)
   {
@@ -764,17 +832,23 @@ public:
     return *this;
   }
 
-  _Vec2 normalize() { return *this / this->length(); }
+  _Vec2 normalize()
+  {
+    return *this / this->length();
+  }
 };
 
 using Vec2 = _Vec2<double>;
 using Vec2i = _Vec2<int>;
 
 class Mat4 {
-public:
+  public:
   Array<float, 16> data;
 
-  Mat4() { this->data.zeroFill(); }
+  Mat4()
+  {
+    this->data.zeroFill();
+  }
 
   static Mat4 Identity()
   {
@@ -876,9 +950,15 @@ struct Color {
   }
 #endif
 
-  Color(String color) { *this = hexToColor(color); }
+  Color(String color)
+  {
+    *this = hexToColor(color);
+  }
 
-  Color(const char* color) { *this = hexToColor(String::view(color)); }
+  Color(const char* color)
+  {
+    *this = hexToColor(String::view(color));
+  }
 
 #ifdef TINYSTD_USE_CLAY
   operator Clay_Color()
@@ -982,8 +1062,7 @@ void Arena::clearAndReinit()
 {
   if (!this->__initialized) {
     *this = Arena::create();
-  }
-  else {
+  } else {
     // Clear every page except the first, and reset the first page
     // This means when reiniting an arena, most of the time no allocation is necessary
     ArenaChunk* current = this->firstChunk->nextChunk;
@@ -1045,7 +1124,10 @@ char String::get(size_t index)
 }
 
 // NOLINTNEXTLINE(misc-definitions-in-headers) -> Implementation Macro is used
-char String::operator[](size_t index) { return this->get(index); }
+char String::operator[](size_t index)
+{
+  return this->get(index);
+}
 
 // NOLINTNEXTLINE(misc-definitions-in-headers) -> Implementation Macro is used
 const char* String::c_str(Arena& arena)
@@ -1091,7 +1173,10 @@ String String::clone(Arena& arena, String string)
 }
 
 // NOLINTNEXTLINE(misc-definitions-in-headers) -> Implementation Macro is used
-String String::clone(Arena& arena, const char* str) { return String::clone(arena, str, strlen(str)); }
+String String::clone(Arena& arena, const char* str)
+{
+  return String::clone(arena, str, strlen(str));
+}
 
 // NOLINTNEXTLINE(misc-definitions-in-headers) -> Implementation Macro is used
 String String::clone(Arena& arena, const char* str, size_t length)
@@ -1102,10 +1187,16 @@ String String::clone(Arena& arena, const char* str, size_t length)
 }
 
 // NOLINTNEXTLINE(misc-definitions-in-headers) -> Implementation Macro is used
-String String::view(const char* str) { return String(str, strlen(str)); }
+String String::view(const char* str)
+{
+  return String(str, strlen(str));
+}
 
 // NOLINTNEXTLINE(misc-definitions-in-headers) -> Implementation Macro is used
-String String::view(const char* str, size_t length) { return String(str, length); }
+String String::view(const char* str, size_t length)
+{
+  return String(str, length);
+}
 
 // NOLINTNEXTLINE(misc-definitions-in-headers) -> Implementation Macro is used
 bool String::operator==(String other)
@@ -1134,22 +1225,40 @@ void __format_vsnprintf(char* buffer, size_t bufferSize, const char* format, ...
 }
 
 // NOLINTNEXTLINE(misc-definitions-in-headers) -> Implementation Macro is used
-size_t __format_strlen(const char* str) { return strlen(str); }
+size_t __format_strlen(const char* str)
+{
+  return strlen(str);
+}
 
 // NOLINTNEXTLINE(misc-definitions-in-headers) -> Implementation Macro is used
-void* __memset(void* dest, int ch, size_t count) { return memset(dest, ch, count); }
+void* __memset(void* dest, int ch, size_t count)
+{
+  return memset(dest, ch, count);
+}
 
 // NOLINTNEXTLINE(misc-definitions-in-headers) -> Implementation Macro is used
-void __format_output_stdout(String string) { fwrite(string.data, 1, string.length, stdout); }
+void __format_output_stdout(String string)
+{
+  fwrite(string.data, 1, string.length, stdout);
+}
 
 // NOLINTNEXTLINE(misc-definitions-in-headers) -> Implementation Macro is used
-void __format_output_stderr(String string) { fwrite(string.data, 1, string.length, stderr); }
+void __format_output_stderr(String string)
+{
+  fwrite(string.data, 1, string.length, stderr);
+}
 
 // NOLINTNEXTLINE(misc-definitions-in-headers) -> Implementation Macro is used
-void __panicStr(const char* str) { panic("{}", str); }
+void __panicStr(const char* str)
+{
+  panic("{}", str);
+}
 
 // NOLINTNEXTLINE(misc-definitions-in-headers) -> Implementation Macro is used
-void __panicSizeT(const char* str, size_t value) { panic(str, value); }
+void __panicSizeT(const char* str, size_t value)
+{
+  panic(str, value);
+}
 
 // NOLINTNEXTLINE(misc-definitions-in-headers) -> Implementation Macro is used
 Result<int64_t, ParseError> strToInt(String string)
@@ -1168,14 +1277,11 @@ uint8_t hexToDigit(char letter)
 {
   if (letter >= '0' && letter <= '9') {
     return letter - '0';
-  }
-  else if (letter >= 'a' && letter <= 'f') {
+  } else if (letter >= 'a' && letter <= 'f') {
     return letter - 'a' + 10;
-  }
-  else if (letter >= 'A' && letter <= 'F') {
+  } else if (letter >= 'A' && letter <= 'F') {
     return letter - 'A' + 10;
-  }
-  else {
+  } else {
     return 0;
   }
 }
@@ -1189,29 +1295,25 @@ Color hexToColor(String hex)
     uint8_t b = hexToDigit(hex[3]) + 16 * hexToDigit(hex[3]);
     uint8_t a = 255;
     return Color(r, g, b, a);
-  }
-  else if (hex.length == 5) {
+  } else if (hex.length == 5) {
     uint8_t r = hexToDigit(hex[1]) + 16 * hexToDigit(hex[1]);
     uint8_t g = hexToDigit(hex[2]) + 16 * hexToDigit(hex[2]);
     uint8_t b = hexToDigit(hex[3]) + 16 * hexToDigit(hex[3]);
     uint8_t a = hexToDigit(hex[4]) + 16 * hexToDigit(hex[4]);
     return Color(r, g, b, a);
-  }
-  else if (hex.length == 7) {
+  } else if (hex.length == 7) {
     uint8_t r = hexToDigit(hex[2]) + 16 * hexToDigit(hex[1]);
     uint8_t g = hexToDigit(hex[4]) + 16 * hexToDigit(hex[3]);
     uint8_t b = hexToDigit(hex[6]) + 16 * hexToDigit(hex[5]);
     uint8_t a = 255;
     return Color(r, g, b, a);
-  }
-  else if (hex.length == 9) {
+  } else if (hex.length == 9) {
     uint8_t r = hexToDigit(hex[2]) + 16 * hexToDigit(hex[1]);
     uint8_t g = hexToDigit(hex[4]) + 16 * hexToDigit(hex[3]);
     uint8_t b = hexToDigit(hex[6]) + 16 * hexToDigit(hex[5]);
     uint8_t a = hexToDigit(hex[8]) + 16 * hexToDigit(hex[7]);
     return Color(r, g, b, a);
-  }
-  else {
+  } else {
     return Color(0, 0, 0, 0);
   }
 }

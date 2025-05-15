@@ -6,6 +6,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include <stdio.h>
+
 #if defined(TINYSTD_USE_CLAY) && !defined(CLAY_HEADER)
 #error TINYSTD_USE_CLAY is defined, but CLAY_HEADER not. This means that you want to use the Clay library bindings, but clay.h was not yet included. You must manually include clay.h BEFORE TinyStd.hpp.
 #endif
@@ -193,7 +195,7 @@ template <typename T> struct Optional {
     return this->_value;
   }
 
-  [[nodiscard]] T& value_or(const T& defaultValue)
+  [[nodiscard]] const T& value_or(const T& defaultValue)
   {
     if (!this->_hasValue) {
       return defaultValue;
@@ -553,6 +555,13 @@ template <typename T> struct formatter : false_type { };
 
 static const char* makeFormatString(Arena& arena, String formatArg, char _default)
 {
+  if (formatArg.length == 0) {
+    auto str = arena.allocate<char>(3);
+    str[0] = '%';
+    str[1] = _default;
+    str[2] = '\0';
+    return str;
+  }
   auto length = formatArg.length;
   auto str = (char*)formatArg.c_str(arena);
   str[0] = '%';

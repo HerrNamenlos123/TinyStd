@@ -6,6 +6,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include <stdio.h>
+
 #if defined(TINYSTD_USE_CLAY) && !defined(CLAY_HEADER)
 #error TINYSTD_USE_CLAY is defined, but CLAY_HEADER not. This means that you want to use the Clay library bindings, but clay.h was not yet included. You must manually include clay.h BEFORE TinyStd.hpp.
 #endif
@@ -538,10 +540,29 @@ template <typename T>
 concept no_formatter = requires(T t) { T::value; };
 template <typename T> struct formatter : false_type { };
 
+static const char* makeFormatString(Arena& arena, String formatArg, char _default)
+{
+  auto length = formatArg.length;
+  auto str = (char*)formatArg.c_str(arena);
+  str[0] = '%';
+  auto last = str[formatArg.length - 1];
+  if (last != 'x' && last != 'X') {
+    auto newStr = arena.allocate<char>(formatArg.length + 2);
+    for (size_t i = 0; i < formatArg.length; i++) {
+      newStr[i] = str[i];
+    }
+    newStr[formatArg.length] = _default;
+    newStr[formatArg.length + 1] = '\0';
+    return newStr;
+  }
+  return str;
+}
+
 template <> struct formatter<int> {
   static size_t format(const int& value, String formatArg, char* buffer, size_t remainingBufferSize)
   {
-    __format_vsnprintf(buffer, remainingBufferSize, "%d", value);
+    StackArena<64> arena;
+    __format_vsnprintf(buffer, remainingBufferSize, makeFormatString(arena, formatArg, 'd'), value);
     return __format_strlen(buffer);
   }
 };
@@ -934,12 +955,13 @@ enum struct ParseError { NonDigitsRemaining };
 [[nodiscard]] Result<int64_t, ParseError> strToInt(String string);
 [[nodiscard]] uint8_t hexToDigit(char letter);
 [[nodiscard]] Color hexToColor(ts::String hex);
+[[nodiscard]] ts::String colorToHex(Arena& arena, Color color);
 
 struct Color {
-  float r = 0;
-  float g = 0;
-  float b = 0;
-  float a = 0;
+  uint8_t r = 0;
+  uint8_t g = 0;
+  uint8_t b = 0;
+  uint8_t a = 0;
 
   Color()
   {
@@ -989,6 +1011,16 @@ struct Color {
     return color;
   }
 #endif // USE_CLAY
+};
+
+template <> struct formatter<Color> {
+  static size_t format(const Color& value, String formatArg, char* buffer, size_t remainingBufferSize)
+  {
+    StackArena<8192> arena;
+    auto col = colorToHex(arena, value);
+    __format_vsnprintf(buffer, remainingBufferSize, "%s", col.c_str(arena), col.length);
+    return __format_strlen(buffer);
+  }
 };
 
 } // namespace ts
@@ -1333,6 +1365,11 @@ Color hexToColor(String hex)
   } else {
     return Color(0, 0, 0, 0);
   }
+}
+
+ts::String colorToHex(Arena& arena, Color color)
+{
+  return format(arena, "#{:02X}{:02X}{:02X}{:02X}", (int)color.r, (int)color.g, (int)color.b, (int)color.a);
 }
 
 } // namespace ts

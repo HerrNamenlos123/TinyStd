@@ -546,6 +546,14 @@ template <> struct formatter<int> {
   }
 };
 
+template <> struct formatter<unsigned int> {
+  static size_t format(const unsigned int& value, String formatArg, char* buffer, size_t remainingBufferSize)
+  {
+    __format_vsnprintf(buffer, remainingBufferSize, "%u", value);
+    return __format_strlen(buffer);
+  }
+};
+
 template <> struct formatter<float> {
   static size_t format(const float& value, String formatArg, char* buffer, size_t remainingBufferSize)
   {
@@ -631,6 +639,15 @@ template <size_t LENGTH> struct formatter<char[LENGTH]> {
   static size_t format(const char value[LENGTH], String formatArg, char* buffer, size_t remainingBufferSize)
   {
     __format_vsnprintf(buffer, remainingBufferSize, "%s", value);
+    return __format_strlen(buffer);
+  }
+};
+
+template <> struct formatter<char> {
+  static size_t format(const char& value, String formatArg, char* buffer, size_t remainingBufferSize)
+  {
+    char buf[2] = { value, '\0' };
+    __format_vsnprintf(buffer, remainingBufferSize, "%s", buf);
     return __format_strlen(buffer);
   }
 };

@@ -6,6 +6,10 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#if defined(TINYSTD_USE_CLAY) && !defined(CLAY_HEADER)
+#error TINYSTD_USE_CLAY is defined, but CLAY_HEADER not. This means that you want to use the Clay library bindings, but clay.h was not yet included. You must manually include clay.h BEFORE TinyStd.hpp.
+#endif
+
 namespace ts {
 
 #define ts_min(a, b) (((a) < (b)) ? (a) : (b))
@@ -918,7 +922,6 @@ Arena Arena::create(size_t chunkSize)
     __panicSizeT("Arena chunk allocation of size {} failed", allocSize);
   }
   newArena.firstChunk->capacity = chunkSize;
-  print("Creating arena");
   return newArena;
 }
 

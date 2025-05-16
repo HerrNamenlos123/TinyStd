@@ -676,7 +676,7 @@ template <> struct formatter<double> {
 template <> struct formatter<long> {
   static size_t format(const long& value, String formatArg, char* buffer, size_t remainingBufferSize)
   {
-    __format_vsnprintf(buffer, remainingBufferSize, "%l", value);
+    __format_vsnprintf(buffer, remainingBufferSize, "%ld", value);
     return __format_strlen(buffer);
   }
 };

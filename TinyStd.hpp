@@ -14,14 +14,15 @@
 
 namespace ts {
 
-#define ts_min(a, b) (((a) < (b)) ? (a) : (b))
-#define ts_max(a, b) (((a) > (b)) ? (a) : (b))
+#define min(a, b) (((a) < (b)) ? (a) : (b))
+#define max(a, b) (((a) > (b)) ? (a) : (b))
+#define clamp(a, b, c) max(min(a, c), b)
 
 struct String;
 
-void __panicStr(const char* str);
-void __panicSizeT(const char* str, size_t value);
-void __panicImpl(String str);
+[[noreturn]] void __panicStr(const char* str);
+[[noreturn]] void __panicSizeT(const char* str, size_t value);
+[[noreturn]] void __panicImpl(String str);
 void* __memset(void* dest, int ch, size_t count);
 
 void __format_vsnprintf(char* buffer, size_t bufferSize, const char* format, ...);
@@ -66,7 +67,7 @@ struct Arena {
       if (this->isStackArena) {
         __panicSizeT("Stack Arena is not large enough for allocation of size {}", size);
       } else {
-        this->enlarge(&lastChunk, ts_max(DEFAULT_ARENA_SIZE, size));
+        this->enlarge(&lastChunk, max(DEFAULT_ARENA_SIZE, size));
       }
     }
 
@@ -159,6 +160,58 @@ struct String {
   }
 };
 
+struct StringBuffer {
+  char* data;
+  size_t length;
+  size_t capacity;
+
+  static const size_t npos = -1;
+
+  [[nodiscard]] char& get(size_t index);
+
+  [[nodiscard]] char& operator[](size_t index);
+
+  [[nodiscard]] const char* c_str(Arena& arena);
+
+  [[nodiscard]] static StringBuffer clone(Arena& arena, String string);
+
+  [[nodiscard]] static StringBuffer clone(Arena& arena, const char* str);
+
+  [[nodiscard]] static StringBuffer clone(Arena& arena, const char* str, size_t length);
+
+  [[nodiscard]] bool operator==(String other);
+
+  StringBuffer& append(Arena& arena, char c);
+
+  StringBuffer& append(Arena& arena, String str);
+
+  [[nodiscard]] String findUntil(String criteria, size_t skip = 0);
+
+  void enlarge(Arena& arena);
+
+  StringBuffer()
+      : data(0)
+      , length(0)
+      , capacity(0)
+  {
+  }
+
+  StringBuffer(Arena& arena, const char* str)
+  {
+    *this = StringBuffer::clone(arena, str);
+  }
+
+  StringBuffer(Arena& arena, const char* str, size_t length)
+  {
+    *this = StringBuffer::clone(arena, str, length);
+  }
+
+  StringBuffer(Arena& arena, String str)
+  {
+    *this = StringBuffer::clone(arena, str);
+  }
+};
+
 namespace literals {
   inline String operator""_s(const char* str, size_t length)
   {
@@ -166,7 +219,7 @@ namespace literals {
   }
 }
 
-template <typename... Args> void panic(const char* fmt, Args&&... args)
+template <typename... Args> [[noreturn]] void panic(const char* fmt, Args&&... args)
 {
   Arena arena = Arena::create();
   String str = format(arena, fmt, args...);
@@ -1274,6 +1327,96 @@ bool String::operator==(String other)
     return false;
   }
   return 0 == memcmp(this->data, other.data, this->length);
+}
+
+// NOLINTNEXTLINE(misc-definitions-in-headers) -> Implementation Macro is used
+char& StringBuffer::get(size_t index)
+{
+  if (index >= this->length) {
+    __panicStr("StringBuffer index access out of range");
+  }
+  return this->data[index];
+}
+
+char& StringBuffer::operator[](size_t index)
+{
+  return this->get(index);
+}
+
+const char* StringBuffer::c_str(Arena& arena)
+{
+  return String::view(this->data, this->length).c_str(arena);
+}
+
+StringBuffer StringBuffer::clone(Arena& arena, String string)
+{
+  StringBuffer buf;
+  buf.data = arena.allocate<char>(string.length * 2);
+  memcpy(buf.data, string.data, string.length);
+  buf.length = string.length;
+  buf.capacity = string.length * 2;
+  return buf;
+}
+
+StringBuffer StringBuffer::clone(Arena& arena, const char* str)
+{
+  return StringBuffer::clone(arena, String::view(str));
+}
+
+StringBuffer StringBuffer::clone(Arena& arena, const char* str, size_t length)
+{
+  return StringBuffer::clone(arena, String::view(str, length));
+}
+
+bool StringBuffer::operator==(String other)
+{
+  return String::view(this->data, this->length) == other;
+}
+
+StringBuffer& StringBuffer::append(Arena& arena, char c)
+{
+  if (this->capacity < this->length + 1) {
+    this->enlarge(arena);
+  }
+  this->data[this->length] = c;
+  this->length++;
+  return *this;
+}
+
+StringBuffer& StringBuffer::append(Arena& arena, String str)
+{
+  if (this->capacity < this->length + str.length) {
+    this->enlarge(arena);
+  }
+  memcpy(this->data + this->length, str.data, str.length);
+  this->length += str.length;
+  return *this;
+}
+
+String StringBuffer::findUntil(String criteria, size_t skip)
+{
+  char* ptr = this->data + skip;
+  size_t lengthRemaining = this->length - skip;
+
+  while (true) {
+    if (lengthRemaining == 0) {
+      return String::view(this->data + skip, this->length - skip);
+    }
+    String remainingStr = String::view(ptr, lengthRemaining);
+    if (remainingStr.startsWith(criteria)) {
+      return String::view(this->data + skip, remainingStr.data - (this->data + skip));
+    }
+    ptr++;
+    lengthRemaining--;
+  }
+}
+
+void StringBuffer::enlarge(Arena& arena)
+{
+  char* newBuffer = arena.allocate<char>(this->capacity * 2);
+  memcpy(newBuffer, this->data, this->length);
+  this->data = newBuffer;
+  this->capacity *= 2;
 }
 
 // NOLINTNEXTLINE(misc-definitions-in-headers) -> Implementation Macro is used

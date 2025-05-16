@@ -173,6 +173,8 @@ struct StringBuffer {
 
   [[nodiscard]] const char* c_str(Arena& arena);
 
+  [[nodiscard]] String str();
+
   [[nodiscard]] static StringBuffer clone(Arena& arena, String string);
 
   [[nodiscard]] static StringBuffer clone(Arena& arena, const char* str);
@@ -360,6 +362,24 @@ template <typename T> struct ListElem {
 
 template <typename T> struct List {
   size_t length = { 0 };
+
+  template <typename V> void __add(Arena& arena, V v)
+  {
+    this->push(arena, v);
+  }
+
+  template <typename V, typename... U> void __add(Arena& arena, V v, U... u)
+  {
+    this->push(arena, v);
+    __add(arena, u...);
+  }
+
+  List() = default;
+
+  template <typename... U> constexpr List(Arena& arena, U... u)
+  {
+    __add(arena, u...);
+  }
 
   void push(Arena& arena, T element)
   {
@@ -703,6 +723,18 @@ template <> struct formatter<bool> {
 
 template <> struct formatter<String> {
   static size_t format(const String& value, String formatArg, char* buffer, size_t remainingBufferSize)
+  {
+    for (size_t i = 0; i < value.length; i++) {
+      if (i < remainingBufferSize) {
+        buffer[i] = value.data[i];
+      }
+    }
+    return value.length;
+  }
+};
+
+template <> struct formatter<StringBuffer> {
+  static size_t format(const StringBuffer& value, String formatArg, char* buffer, size_t remainingBufferSize)
   {
     for (size_t i = 0; i < value.length; i++) {
       if (i < remainingBufferSize) {
@@ -1348,6 +1380,11 @@ const char* StringBuffer::c_str(Arena& arena)
   return String::view(this->data, this->length).c_str(arena);
 }
 
+String StringBuffer::str()
+{
+  return String::view(this->data, this->length);
+}
+
 StringBuffer StringBuffer::clone(Arena& arena, String string)
 {
   StringBuffer buf;
@@ -1413,6 +1450,11 @@ String StringBuffer::findUntil(String criteria, size_t skip)
 
 void StringBuffer::enlarge(Arena& arena)
 {
+  if (this->capacity == 0) {
+    this->capacity = 4;
+    this->data = arena.allocate<char>(this->capacity * 2);
+    return;
+  }
   char* newBuffer = arena.allocate<char>(this->capacity * 2);
   memcpy(newBuffer, this->data, this->length);
   this->data = newBuffer;
@@ -1477,6 +1519,9 @@ Result<int64_t, ParseError> strToInt(String string)
 {
   char* endptr;
   StackArena<64> tmpArena;
+  if (string.length >= 64) {
+    panic("ts::strToInt(): String to be converted is too long to parse to integer: '{}'", string);
+  }
   int64_t value = strtol(string.c_str(tmpArena), &endptr, 10);
   if (*endptr != '\0') {
     return ParseError::NonDigitsRemaining;

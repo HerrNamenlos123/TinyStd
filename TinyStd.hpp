@@ -189,7 +189,7 @@ struct StringBuffer {
 
   [[nodiscard]] String findUntil(String criteria, size_t skip = 0);
 
-  void enlarge(Arena& arena);
+  void enlarge(Arena& arena, size_t neededSize);
 
   StringBuffer()
       : data(0)
@@ -297,18 +297,10 @@ template <typename TVal, typename TErr> struct Result {
     this->_hasValue = false;
   }
 
-  [[nodiscard]] TVal& unwrap()
+  [[nodiscard]] TVal& value()
   {
     if (!this->_hasValue) {
       panic("Bad result access");
-    }
-    return this->_value;
-  }
-
-  [[nodiscard]] Optional<TVal> value()
-  {
-    if (!this->_hasValue) {
-      return {};
     }
     return this->_value;
   }
@@ -321,15 +313,7 @@ template <typename TVal, typename TErr> struct Result {
     return this->_value;
   }
 
-  [[nodiscard]] Optional<TErr> error()
-  {
-    if (this->_hasValue) {
-      return {};
-    }
-    return this->_error;
-  }
-
-  [[nodiscard]] TErr& unwrap_error()
+  [[nodiscard]] TErr& error()
   {
     if (this->_hasValue) {
       panic("Bad result access");
@@ -337,14 +321,19 @@ template <typename TVal, typename TErr> struct Result {
     return this->_error;
   }
 
-  [[nodiscard]] bool hasValue()
+  [[nodiscard]] operator bool()
   {
     return this->_hasValue;
   }
 
-  [[nodiscard]] operator bool()
+  [[nodiscard]] TVal& operator*()
   {
-    return this->hasValue();
+    return this->value();
+  }
+
+  [[nodiscard]] TVal* operator->()
+  {
+    return &this->_value;
   }
 
   private:
@@ -680,6 +669,14 @@ template <> struct formatter<double> {
   static size_t format(const double& value, String formatArg, char* buffer, size_t remainingBufferSize)
   {
     __format_vsnprintf(buffer, remainingBufferSize, "%lf", value);
+    return __format_strlen(buffer);
+  }
+};
+
+template <> struct formatter<long> {
+  static size_t format(const long& value, String formatArg, char* buffer, size_t remainingBufferSize)
+  {
+    __format_vsnprintf(buffer, remainingBufferSize, "%l", value);
     return __format_strlen(buffer);
   }
 };
@@ -1058,6 +1055,7 @@ class Mat4 {
 struct Color;
 enum struct ParseError { NonDigitsRemaining };
 [[nodiscard]] Result<int64_t, ParseError> strToInt(String string);
+[[nodiscard]] Result<double, ParseError> strToDouble(String string);
 [[nodiscard]] uint8_t hexToDigit(char letter);
 [[nodiscard]] Color hexToColor(ts::String hex);
 [[nodiscard]] ts::String colorToHex(Arena& arena, Color color);
@@ -1413,7 +1411,7 @@ bool StringBuffer::operator==(String other)
 StringBuffer& StringBuffer::append(Arena& arena, char c)
 {
   if (this->capacity < this->length + 1) {
-    this->enlarge(arena);
+    this->enlarge(arena, this->length + 1);
   }
   this->data[this->length] = c;
   this->length++;
@@ -1423,7 +1421,7 @@ StringBuffer& StringBuffer::append(Arena& arena, char c)
 StringBuffer& StringBuffer::append(Arena& arena, String str)
 {
   if (this->capacity < this->length + str.length) {
-    this->enlarge(arena);
+    this->enlarge(arena, this->length + str.length);
   }
   memcpy(this->data + this->length, str.data, str.length);
   this->length += str.length;
@@ -1448,17 +1446,17 @@ String StringBuffer::findUntil(String criteria, size_t skip)
   }
 }
 
-void StringBuffer::enlarge(Arena& arena)
+void StringBuffer::enlarge(Arena& arena, size_t neededSize)
 {
   if (this->capacity == 0) {
-    this->capacity = 4;
-    this->data = arena.allocate<char>(this->capacity * 2);
+    this->capacity = max(8, neededSize * 2);
+    this->data = arena.allocate<char>(this->capacity);
     return;
   }
-  char* newBuffer = arena.allocate<char>(this->capacity * 2);
+  this->capacity = max(this->capacity * 2, neededSize * 2);
+  char* newBuffer = arena.allocate<char>(this->capacity);
   memcpy(newBuffer, this->data, this->length);
   this->data = newBuffer;
-  this->capacity *= 2;
 }
 
 // NOLINTNEXTLINE(misc-definitions-in-headers) -> Implementation Macro is used
@@ -1523,6 +1521,21 @@ Result<int64_t, ParseError> strToInt(String string)
     panic("ts::strToInt(): String to be converted is too long to parse to integer: '{}'", string);
   }
   int64_t value = strtol(string.c_str(tmpArena), &endptr, 10);
+  if (*endptr != '\0') {
+    return ParseError::NonDigitsRemaining;
+  }
+  return value;
+}
+
+// NOLINTNEXTLINE(misc-definitions-in-headers) -> Implementation Macro is used
+Result<double, ParseError> strToDouble(String string)
+{
+  char* endptr;
+  StackArena<64> tmpArena;
+  if (string.length >= 64) {
+    panic("ts::strToDouble(): String to be converted is too long to parse to double: '{}'", string);
+  }
+  double value = strtod(string.c_str(tmpArena), &endptr);
   if (*endptr != '\0') {
     return ParseError::NonDigitsRemaining;
   }

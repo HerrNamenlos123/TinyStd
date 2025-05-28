@@ -2109,6 +2109,11 @@ template <typename T> class _Vec2 {
     return *this;
   }
 
+  _Vec2 operator-()
+  {
+    return Vec2(-this->x, -this->y);
+  }
+
   _Vec2 normalize()
   {
     return *this / this->length();

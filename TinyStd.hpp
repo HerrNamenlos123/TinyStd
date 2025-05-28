@@ -2113,6 +2113,16 @@ template <typename T> class _Vec2 {
   {
     return *this / this->length();
   }
+
+  bool operator==(const _Vec2& v)
+  {
+    return this->x == v.x && this->y == v.y;
+  }
+
+  bool operator!=(const _Vec2& v)
+  {
+    return !((*this) == v);
+  }
 };
 
 using Vec2 = _Vec2<double>;

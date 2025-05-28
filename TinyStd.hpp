@@ -2126,7 +2126,7 @@ template <typename T> class _Vec2 {
 
   _Vec2 operator-()
   {
-    return Vec2(-this->x, -this->y);
+    return _Vec2(-this->x, -this->y);
   }
 
   _Vec2 normalize()

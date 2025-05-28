@@ -2148,6 +2148,133 @@ template <typename T> class _Vec2 {
 using Vec2 = _Vec2<double>;
 using Vec2i = _Vec2<int>;
 
+template <typename T> class _Vec3 {
+  public:
+  T x;
+  T y;
+  T z;
+
+  _Vec3()
+  {
+    this->x = 0;
+    this->y = 0;
+    this->z = 0;
+  }
+
+  _Vec3(T x, T y, T z)
+  {
+    this->x = x;
+    this->y = y;
+    this->z = z;
+  }
+
+  double length()
+  {
+    return sqrt(pow(this->x, 2) + pow(this->y, 2) + pow(this->z, 2));
+  }
+
+  _Vec3 operator-(const _Vec3& other)
+  {
+    return _Vec3(this->x - other.x, this->y - other.y, this->z - other.z);
+  }
+
+  _Vec3 operator+(const _Vec3& other)
+  {
+    return _Vec3(this->x + other.x, this->y + other.y, this->z + other.z);
+  }
+
+  _Vec3 operator*(const _Vec3& other)
+  {
+    return _Vec3(this->x * other.x, this->y * other.y, this->z * other.z);
+  }
+
+  _Vec3 operator/(const _Vec3& other)
+  {
+    return _Vec3(this->x / other.x, this->y / other.y, this->z / other.z);
+  }
+
+  _Vec3 operator*(T value)
+  {
+    return _Vec3(this->x * value, this->y * value, this->z * value);
+  }
+
+  _Vec3 operator/(T value)
+  {
+    return _Vec3(this->x / value, this->y / value, this->z / value);
+  }
+
+  _Vec3 operator-=(const _Vec3& other)
+  {
+    this->x -= other.x;
+    this->y -= other.y;
+    this->z -= other.z;
+    return *this;
+  }
+
+  _Vec3 operator+=(const _Vec3& other)
+  {
+    this->x += other.x;
+    this->y += other.y;
+    this->z += other.z;
+    return *this;
+  }
+
+  _Vec3 operator*=(const _Vec3& other)
+  {
+    this->x *= other.x;
+    this->y *= other.y;
+    this->z *= other.z;
+    return *this;
+  }
+
+  _Vec3 operator/=(const _Vec3& other)
+  {
+    this->x /= other.x;
+    this->y /= other.y;
+    this->z /= other.z;
+    return *this;
+  }
+
+  _Vec3 operator*=(T v)
+  {
+    this->x *= v;
+    this->y *= v;
+    this->z *= v;
+    return *this;
+  }
+
+  _Vec3 operator/=(T v)
+  {
+    this->x /= v;
+    this->y /= v;
+    this->z /= v;
+    return *this;
+  }
+
+  _Vec3 operator-()
+  {
+    return _Vec3(-this->x, -this->y, -this->z);
+  }
+
+  _Vec3 normalize()
+  {
+    return *this / this->length();
+  }
+
+  bool operator==(const _Vec3& v)
+  {
+    return this->x == v.x && this->y == v.y && this->z == v.z;
+  }
+
+  bool operator!=(const _Vec3& v)
+  {
+    return !((*this) == v);
+  }
+};
+
+using Vec3 = _Vec3<double>;
+using Vec3i = _Vec3<int>;
+
 class Mat4 {
   public:
   Array<float, 16> data;

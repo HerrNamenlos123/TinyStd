@@ -2147,6 +2147,7 @@ template <typename T> class _Vec2 {
 
 using Vec2 = _Vec2<double>;
 using Vec2i = _Vec2<int>;
+using Vec2f = _Vec2<float>;
 
 template <typename T> class _Vec3 {
   public:
@@ -2274,6 +2275,7 @@ template <typename T> class _Vec3 {
 
 using Vec3 = _Vec3<double>;
 using Vec3i = _Vec3<int>;
+using Vec3f = _Vec3<float>;
 
 class Mat4 {
   public:
@@ -2346,19 +2348,18 @@ class Mat4 {
   }
 };
 
-struct Color;
 enum struct ParseError { NonDigitsRemaining };
 [[nodiscard]] Result<int64_t, ParseError> strToInt(String string);
 [[nodiscard]] Result<double, ParseError> strToDouble(String string);
 [[nodiscard]] uint8_t hexToDigit(char letter);
-[[nodiscard]] Color hexToColor(ts::String hex);
-[[nodiscard]] ts::String colorToHex(Arena& arena, Color color);
+[[nodiscard]] void hexToColor(ts::String hex, float& r, float& g, float& b, float& a);
+[[nodiscard]] String colorToHex(Arena& arena, float r, float g, float b, float a);
 
 struct Color {
-  uint8_t r = 0;
-  uint8_t g = 0;
-  uint8_t b = 0;
-  uint8_t a = 0;
+  float r = 0;
+  float g = 0;
+  float b = 0;
+  float a = 0;
 
   Color()
   {
@@ -2388,16 +2389,21 @@ struct Color {
 
   Color(String color)
   {
-    *this = hexToColor(color);
+    hexToColor(color, this->r, this->g, this->b, this->a);
   }
 
   Color(const char* color)
   {
-    *this = hexToColor(String::view(color));
+    hexToColor(String::view(color), this->r, this->g, this->b, this->a);
+  }
+
+  String toHex(Arena& arena) const
+  {
+    return colorToHex(arena, this->r, this->g, this->b, this->a);
   }
 
 #ifdef TINYSTD_USE_CLAY
-  operator Clay_Color()
+  operator Clay_Color() const
   {
     Clay_Color color = {
       .r = r,
@@ -2414,7 +2420,7 @@ template <> struct formatter<Color> {
   static size_t format(const Color& value, String formatArg, char* buffer, size_t remainingBufferSize)
   {
     StackArena<8192> arena;
-    auto col = colorToHex(arena, value);
+    auto col = value.toHex(arena);
     __format_vsnprintf(buffer, remainingBufferSize, "%s", col.c_str(arena), col.length);
     return __format_strlen(buffer);
   }
@@ -3015,40 +3021,39 @@ uint8_t hexToDigit(char letter)
 }
 
 // NOLINTNEXTLINE(misc-definitions-in-headers) -> Implementation Macro is used
-Color hexToColor(String hex)
+void hexToColor(String hex, float& r, float& g, float& b, float& a)
 {
   if (hex.length == 4) {
-    uint8_t r = hexToDigit(hex[1]) + 16 * hexToDigit(hex[1]);
-    uint8_t g = hexToDigit(hex[2]) + 16 * hexToDigit(hex[2]);
-    uint8_t b = hexToDigit(hex[3]) + 16 * hexToDigit(hex[3]);
-    uint8_t a = 255;
-    return Color(r, g, b, a);
+    r = hexToDigit(hex[1]) + 16 * hexToDigit(hex[1]);
+    g = hexToDigit(hex[2]) + 16 * hexToDigit(hex[2]);
+    b = hexToDigit(hex[3]) + 16 * hexToDigit(hex[3]);
+    a = 255;
   } else if (hex.length == 5) {
-    uint8_t r = hexToDigit(hex[1]) + 16 * hexToDigit(hex[1]);
-    uint8_t g = hexToDigit(hex[2]) + 16 * hexToDigit(hex[2]);
-    uint8_t b = hexToDigit(hex[3]) + 16 * hexToDigit(hex[3]);
-    uint8_t a = hexToDigit(hex[4]) + 16 * hexToDigit(hex[4]);
-    return Color(r, g, b, a);
+    r = hexToDigit(hex[1]) + 16 * hexToDigit(hex[1]);
+    g = hexToDigit(hex[2]) + 16 * hexToDigit(hex[2]);
+    b = hexToDigit(hex[3]) + 16 * hexToDigit(hex[3]);
+    a = hexToDigit(hex[4]) + 16 * hexToDigit(hex[4]);
   } else if (hex.length == 7) {
-    uint8_t r = hexToDigit(hex[2]) + 16 * hexToDigit(hex[1]);
-    uint8_t g = hexToDigit(hex[4]) + 16 * hexToDigit(hex[3]);
-    uint8_t b = hexToDigit(hex[6]) + 16 * hexToDigit(hex[5]);
-    uint8_t a = 255;
-    return Color(r, g, b, a);
+    r = hexToDigit(hex[2]) + 16 * hexToDigit(hex[1]);
+    g = hexToDigit(hex[4]) + 16 * hexToDigit(hex[3]);
+    b = hexToDigit(hex[6]) + 16 * hexToDigit(hex[5]);
+    a = 255;
   } else if (hex.length == 9) {
-    uint8_t r = hexToDigit(hex[2]) + 16 * hexToDigit(hex[1]);
-    uint8_t g = hexToDigit(hex[4]) + 16 * hexToDigit(hex[3]);
-    uint8_t b = hexToDigit(hex[6]) + 16 * hexToDigit(hex[5]);
-    uint8_t a = hexToDigit(hex[8]) + 16 * hexToDigit(hex[7]);
-    return Color(r, g, b, a);
+    r = hexToDigit(hex[2]) + 16 * hexToDigit(hex[1]);
+    g = hexToDigit(hex[4]) + 16 * hexToDigit(hex[3]);
+    b = hexToDigit(hex[6]) + 16 * hexToDigit(hex[5]);
+    a = hexToDigit(hex[8]) + 16 * hexToDigit(hex[7]);
   } else {
-    return Color(0, 0, 0, 0);
+    r = 0;
+    g = 0;
+    b = 0;
+    a = 0;
   }
 }
 
-ts::String colorToHex(Arena& arena, Color color)
+ts::String colorToHex(Arena& arena, float r, float g, float b, float a)
 {
-  return format(arena, "#{:02X}{:02X}{:02X}{:02X}", (int)color.r, (int)color.g, (int)color.b, (int)color.a);
+  return format(arena, "#{:02X}{:02X}{:02X}{:02X}", (int)r, (int)g, (int)b, (int)a);
 }
 
 } // namespace ts

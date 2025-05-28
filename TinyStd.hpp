@@ -2402,6 +2402,26 @@ struct Color {
     return colorToHex(arena, this->r, this->g, this->b, this->a);
   }
 
+  Color operator*(float v)
+  {
+    return Color(r * v, g * v, b * v, a * v);
+  }
+
+  Color operator-(float v)
+  {
+    return Color(r - v, g - v, b - v, a - v);
+  }
+
+  Color operator+(float v)
+  {
+    return Color(r + v, g + v, b + v, a + v);
+  }
+
+  Color operator/(float v)
+  {
+    return Color(r / v, g / v, b / v, a / v);
+  }
+
 #ifdef TINYSTD_USE_CLAY
   operator Clay_Color() const
   {

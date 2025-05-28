@@ -1615,6 +1615,21 @@ template <typename T> struct List {
     return {};
   }
 
+  [[nodiscard]] List<T> reverse(Arena& arena)
+  {
+    List<T> result;
+
+    for (auto it = begin(); it != end(); ++it) {
+      auto* node = arena.allocate<ListElem<T>>();
+      node->data = *it;
+      node->nextElement = result.firstElement;
+      result.firstElement = node;
+      result.length++;
+    }
+
+    return result;
+  }
+
   struct Iterator {
     ListElem<T>* current;
     Iterator(ListElem<T>* node)
